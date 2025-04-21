@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import LandingSection from "@/components/home/landing-section";
 import FileInput from "@/components/conversion/file-input";
 import TextInput from "@/components/conversion/text-input";
 import OcrSettings from "@/components/conversion/ocr-settings";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ProcessingModal } from "@/components/ui/processing-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VoiceSettings as VoiceSettingsType, OCRSettings } from "@shared/schema";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -165,10 +166,23 @@ export default function HomePage() {
     setIsProcessing(false);
   };
 
+  const [showLanding, setShowLanding] = useState(true);
+  const [location] = useLocation();
+
+  // Hide landing section after navigation or if hash is present
+  useEffect(() => {
+    if (location.includes('#convert')) {
+      setShowLanding(false);
+    }
+  }, [location]);
+
   return (
     <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      {/* Landing Section - show for first-time visitors */}
+      {showLanding && !user && <LandingSection />}
+      
       {/* Conversion Panel */}
-      <div className="px-4 py-6 sm:px-0">
+      <div id="convert-section" className="px-4 py-6 sm:px-0">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="md:flex md:items-start md:justify-between p-6">
             <div className="flex-1">
