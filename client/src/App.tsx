@@ -14,7 +14,7 @@ import Footer from "@/components/layout/footer";
 
 function Router() {
   const [location] = useLocation();
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header landingMode={location === "/"} />
@@ -26,7 +26,7 @@ function Router() {
         <ProtectedRoute path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
-      {/* Only add footer to non-landing pages if needed in the future */}
+      <Footer /> {/* Added Footer component */}
     </div>
   );
 }
