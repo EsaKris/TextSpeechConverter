@@ -83,9 +83,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header landingMode={true} />
-      
+    <>
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 py-20 overflow-hidden">
@@ -353,8 +351,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-      
-      <Footer />
-    </div>
+    </>
   );
 }

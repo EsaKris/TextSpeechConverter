@@ -52,24 +52,18 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/">
-                  <a className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
-                    Home
-                  </a>
+                <Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <Link href="/convert">
-                  <a className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
-                    Convert
-                  </a>
+                <Link href="/convert" className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
+                  Convert
                 </Link>
               </li>
               <li>
-                <Link href="/auth">
-                  <a className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
-                    Sign In / Register
-                  </a>
+                <Link href="/auth" className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
+                  Sign In / Register
                 </Link>
               </li>
               <li>

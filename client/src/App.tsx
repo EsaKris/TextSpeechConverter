@@ -14,30 +14,10 @@ import Footer from "@/components/layout/footer";
 
 function Router() {
   const [location] = useLocation();
-  const isLandingPage = location === "/";
   
-  // For landing page, we show a different header and include footer
-  if (isLandingPage) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header landingMode={true} />
-        <Switch>
-          <Route path="/" component={LandingPage} />
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/convert" component={ConvertPage} />
-          <ProtectedRoute path="/history" component={HistoryPage} />
-          <ProtectedRoute path="/settings" component={SettingsPage} />
-          <Route component={NotFound} />
-        </Switch>
-        <Footer />
-      </div>
-    );
-  }
-  
-  // For app pages, we show the regular header without footer
   return (
     <div className="flex flex-col min-h-screen">
-      <Header landingMode={false} />
+      <Header landingMode={location === "/"} />
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/auth" component={AuthPage} />
@@ -46,6 +26,7 @@ function Router() {
         <ProtectedRoute path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
+      {/* Only add footer to non-landing pages if needed in the future */}
     </div>
   );
 }
