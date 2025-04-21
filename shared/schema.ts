@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email"),
   darkMode: boolean("dark_mode").default(false),
   ttsCredits: integer("tts_credits").default(100),
   createdAt: timestamp("created_at").defaultNow(),
@@ -15,6 +16,7 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
 });
 
 // File types enum

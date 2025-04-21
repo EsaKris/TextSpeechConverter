@@ -57,6 +57,9 @@ export default function SettingsPage() {
                     {user.username}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {user.email ? user.email : 'No email provided'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Account ID: #{user.id}
                   </p>
                 </div>

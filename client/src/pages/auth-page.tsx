@@ -32,6 +32,7 @@ const loginSchema = z.object({
 
 const registerSchema = insertUserSchema
   .extend({
+    email: z.string().email("Please enter a valid email address"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -63,6 +64,7 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
       confirmPassword: "",
     },
@@ -173,6 +175,23 @@ export default function AuthPage() {
                             <FormControl>
                               <Input
                                 placeholder="Choose a username"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="email"
+                                placeholder="Enter your email address"
                                 {...field}
                               />
                             </FormControl>
