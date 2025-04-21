@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Card,
@@ -11,16 +11,121 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { 
+  Loader2, 
+  Camera, 
+  Upload, 
+  User as UserIcon, 
+  ArrowDown, 
+  ArrowUp,
+  Settings as SettingsIcon,
+  Edit,
+  Trash2
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function SettingsPage() {
   const { user, updateUserSettings } = useAuth();
+  const { toast } = useToast();
   const [darkMode, setDarkMode] = useState(user?.darkMode || false);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(user?.profilePhoto || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDarkModeToggle = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     updateUserSettings.mutate({ darkMode: newDarkMode });
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPEG, PNG, or GIF image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Profile photo must be less than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create preview URL
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    // Upload profile photo
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('profilePhoto', file);
+
+      const response = await fetch('/api/profile/photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload profile photo');
+      }
+
+      const data = await response.json();
+      
+      // Update user settings with new profile photo URL
+      updateUserSettings.mutate({ profilePhoto: data.photoUrl });
+      
+      toast({
+        title: "Profile photo updated",
+        description: "Your profile photo has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "An error occurred while uploading your profile photo.",
+        variant: "destructive",
+      });
+      // Reset preview if upload failed
+      setPreviewUrl(user?.profilePhoto || null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeProfilePhoto = async () => {
+    try {
+      await apiRequest('DELETE', '/api/profile/photo');
+      updateUserSettings.mutate({ profilePhoto: null });
+      setPreviewUrl(null);
+      toast({
+        title: "Profile photo removed",
+        description: "Your profile photo has been removed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to remove photo",
+        description: "An error occurred while removing your profile photo.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!user) {
@@ -48,20 +153,76 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center mb-6">
-                <div className="h-20 w-20 rounded-full bg-primary-600 text-white flex items-center justify-center text-3xl">
-                  <i className="fas fa-user-circle"></i>
+              <div className="flex flex-col items-center mb-6">
+                {/* Profile Photo */}
+                <div className="mb-4 relative">
+                  <div className="h-24 w-24 rounded-full bg-primary-600 text-white flex items-center justify-center overflow-hidden border-2 border-primary-600">
+                    {previewUrl ? (
+                      <img 
+                        src={previewUrl} 
+                        alt={user.username} 
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <UserIcon className="h-12 w-12" />
+                    )}
+                  </div>
+                  
+                  {/* Photo Upload Controls */}
+                  <div className="absolute -bottom-2 -right-2 flex space-x-1">
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-8 w-8 rounded-full shadow"
+                      onClick={triggerFileInput}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Change profile photo</span>
+                    </Button>
+                    
+                    {previewUrl && (
+                      <Button 
+                        size="icon" 
+                        variant="destructive" 
+                        className="h-8 w-8 rounded-full shadow"
+                        onClick={removeProfilePhoto}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove profile photo</span>
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    accept="image/jpeg, image/png, image/gif"
+                  />
                 </div>
-                <div className="ml-4">
+                
+                <div className="text-center">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {user.username}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {user.email ? user.email : 'No email provided'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Account ID: #{user.id}
-                  </p>
+                  <div className="flex items-center justify-center mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mr-1">
+                      Account Type:
+                    </p>
+                    <span className="text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300 px-2 py-0.5 rounded-full capitalize">
+                      {user.accountType || 'Free'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

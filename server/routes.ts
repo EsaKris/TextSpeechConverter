@@ -210,6 +210,43 @@ async function cleanupGuestFiles() {
 // Schedule cleanup to run daily
 setInterval(cleanupGuestFiles, 24 * 60 * 60 * 1000);
 
+// Middleware to ensure user is authenticated
+function ensureAuthenticated(req: Request, res: Response, next: Function) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: "Authentication required" });
+}
+
+// Profile photo multer config
+const profilePhotoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(process.cwd(), "uploads", "profile-photos");
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const userId = req.user?.id || "guest";
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const ext = path.extname(file.originalname);
+      cb(null, `profile-${userId}-${uniqueSuffix}${ext}`);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPEG, PNG, and GIF images are allowed"));
+    }
+    cb(null, true);
+  },
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
@@ -500,6 +537,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
+    }
+  });
+  
+  // Profile photo upload endpoint
+  app.post("/api/profile/photo", ensureAuthenticated, profilePhotoUpload.single("profilePhoto"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No photo uploaded" });
+      }
+
+      // Get relative path from root directory for storage
+      const relativePath = path.relative(process.cwd(), req.file.path);
+      
+      // Update user profile with photo path
+      const updatedUser = await storage.updateUser(req.user.id, {
+        profilePhoto: `/${relativePath.replace(/\\/g, "/")}` // Ensure Unix-style path for web use
+      });
+
+      res.status(200).json({
+        message: "Profile photo uploaded successfully",
+        photoUrl: updatedUser.profilePhoto
+      });
+    } catch (error) {
+      console.error("Profile photo upload error:", error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Profile photo delete endpoint
+  app.delete("/api/profile/photo", ensureAuthenticated, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      
+      if (user?.profilePhoto) {
+        // Remove the profile photo file
+        const fullPath = path.join(process.cwd(), user.profilePhoto);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+        
+        // Update user record
+        await storage.updateUser(req.user.id, {
+          profilePhoto: null
+        });
+      }
+      
+      res.status(200).json({ message: "Profile photo removed successfully" });
+    } catch (error) {
+      console.error("Profile photo deletion error:", error);
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
