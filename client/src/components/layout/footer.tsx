@@ -7,7 +7,8 @@ import {
   Instagram, 
   Mail, 
   Phone, 
-  MapPin 
+  MapPin,
+  Linkedin
 } from "lucide-react";
 
 export default function Footer() {
@@ -143,9 +144,21 @@ export default function Footer() {
         </div>
         
         <div className="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            &copy; {currentYear} SpeechifyDocs. All rights reserved.
-          </p>
+          <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400 text-sm">
+            <p>&copy; {currentYear} SpeechifyDocs. All rights reserved.</p>
+            <div className="flex items-center gap-1">
+              <span>Developed by EsaKris</span>
+              <a 
+                href="https://www.linkedin.com/in/ekre-christian-18008b299/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-500 hover:text-primary transition-colors"
+              >
+                <Linkedin className="h-4 w-4" />
+                <span className="sr-only">LinkedIn</span>
+              </a>
+            </div>
+          </div>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary text-sm transition-colors">
               Privacy Policy
