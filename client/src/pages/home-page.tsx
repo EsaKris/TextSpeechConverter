@@ -8,10 +8,12 @@ import TextInput from "@/components/conversion/text-input";
 import OcrSettings from "@/components/conversion/ocr-settings";
 import VoiceSettings from "@/components/conversion/voice-settings";
 import ResultPanel from "@/components/conversion/result-panel";
+import SignupPrompt from "@/components/conversion/signup-prompt";
 import { Button } from "@/components/ui/button";
 import { ProcessingModal } from "@/components/ui/processing-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VoiceSettings as VoiceSettingsType, OCRSettings } from "@shared/schema";
+import { Link } from "wouter";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -23,6 +25,7 @@ export default function HomePage() {
   const [fileId, setFileId] = useState<number | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [language, setLanguage] = useState("en");
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
     speed: 1.0,
     pitch: 0.5,
@@ -135,6 +138,12 @@ export default function HomePage() {
           : "Please enter some text to convert",
         variant: "destructive",
       });
+      return;
+    }
+    
+    // Check if guest user has reached their limit
+    if (!user && conversionData && conversionData.count >= conversionData.limit) {
+      setShowSignupPrompt(true);
       return;
     }
     
@@ -281,6 +290,12 @@ export default function HomePage() {
         open={isProcessing} 
         onCancel={() => setIsProcessing(false)}
         onComplete={() => setIsProcessing(false)}
+      />
+
+      {/* Signup Prompt Modal */}
+      <SignupPrompt
+        open={showSignupPrompt}
+        onClose={() => setShowSignupPrompt(false)}
       />
     </main>
   );

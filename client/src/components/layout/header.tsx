@@ -130,11 +130,12 @@ export default function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
+                    className="relative h-8 w-8 rounded-full flex items-center gap-2 pr-2"
                   >
                     <div className="h-8 w-8 rounded-full bg-primary-600 text-white flex items-center justify-center">
-                      <i className="fas fa-user-circle"></i>
+                      {user.username.substring(0, 1).toUpperCase()}
                     </div>
+                    <span className="hidden sm:block font-medium">{user.username}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -143,21 +144,13 @@ export default function Header() {
                     <span className="font-medium">{user.username}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                      <a className="flex cursor-pointer items-center">
-                        <i className="fas fa-cog mr-2 text-sm"></i>
-                        <span>Settings</span>
-                      </a>
-                    </Link>
+                  <DropdownMenuItem onClick={() => window.location.href = "/settings"}>
+                    <i className="fas fa-cog mr-2 text-sm"></i>
+                    <span>Settings</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/history">
-                      <a className="flex cursor-pointer items-center">
-                        <i className="fas fa-history mr-2 text-sm"></i>
-                        <span>History</span>
-                      </a>
-                    </Link>
+                  <DropdownMenuItem onClick={() => window.location.href = "/history"}>
+                    <i className="fas fa-history mr-2 text-sm"></i>
+                    <span>History</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
@@ -170,10 +163,12 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button variant="default" size="sm" asChild>
-                <Link href="/auth">
-                  <a>Sign In</a>
-                </Link>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => window.location.href = "/auth"}
+              >
+                Sign In
               </Button>
             )}
           </div>
