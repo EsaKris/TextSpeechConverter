@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { sendEmail } from "./email";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -301,6 +302,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertConversionSchema.parse(conversionData);
       const conversion = await storage.createConversion(validatedData);
+      
+      // Send conversion completion email for registered users
+      if (req.isAuthenticated() && req.user.email) {
+        sendEmail(req.user, 'conversionComplete', { conversionId: conversion.id })
+          .then(sent => {
+            console.log(`Conversion completion email to ${req.user.email}: ${sent ? 'sent' : 'failed'}`);
+          })
+          .catch(err => {
+            console.error('Error sending conversion completion email:', err);
+          });
+      }
       
       res.status(201).json({
         id: conversion.id,

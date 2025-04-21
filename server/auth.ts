@@ -73,6 +73,17 @@ export function setupAuth(app: Express) {
       password: await hashPassword(req.body.password),
     });
 
+    // Send welcome email if user provided an email address
+    if (user.email) {
+      sendEmail(user, 'welcome')
+        .then(sent => {
+          console.log(`Welcome email to ${user.email}: ${sent ? 'sent' : 'failed'}`);
+        })
+        .catch(err => {
+          console.error('Error sending welcome email:', err);
+        });
+    }
+
     req.login(user, (err) => {
       if (err) return next(err);
       res.status(201).json(user);
