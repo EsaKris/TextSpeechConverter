@@ -4,10 +4,15 @@ import {
   ttsConversions, type TTSConversion, type InsertTTSConversion,
   textPresets, type TextPreset, type InsertTextPreset
 } from "@shared/schema";
-import session from "express-session";
+import * as expressSession from "express-session";
+import { db } from "./db";
+import { eq, and, gte } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 import createMemoryStore from "memorystore";
 
-const MemoryStore = createMemoryStore(session);
+const MemoryStore = createMemoryStore(expressSession);
+const PostgresSessionStore = connectPg(expressSession);
 
 // modify the interface with any CRUD methods you might need
 export interface IStorage {
@@ -39,7 +44,7 @@ export interface IStorage {
   deletePreset(id: number): Promise<void>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: expressSession.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -47,7 +52,7 @@ export class MemStorage implements IStorage {
   private uploadedFiles: Map<number, UploadedFile>;
   private ttsConversions: Map<number, TTSConversion>;
   private textPresets: Map<number, TextPreset>;
-  sessionStore: session.SessionStore;
+  sessionStore: expressSession.Store;
   private userIdCounter: number;
   private fileIdCounter: number;
   private conversionIdCounter: number;
@@ -216,4 +221,146 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  sessionStore: expressSession.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+
+  // File operations
+  async getUploadedFile(id: number): Promise<UploadedFile | undefined> {
+    const [file] = await db.select().from(uploadedFiles).where(eq(uploadedFiles.id, id));
+    return file;
+  }
+
+  async getUploadedFilesByUser(userId: number): Promise<UploadedFile[]> {
+    return await db.select().from(uploadedFiles).where(eq(uploadedFiles.userId, userId));
+  }
+
+  async createUploadedFile(file: InsertUploadedFile): Promise<UploadedFile> {
+    const [newFile] = await db.insert(uploadedFiles).values(file).returning();
+    return newFile;
+  }
+
+  async updateUploadedFile(id: number, data: Partial<UploadedFile>): Promise<UploadedFile> {
+    const [updatedFile] = await db
+      .update(uploadedFiles)
+      .set(data)
+      .where(eq(uploadedFiles.id, id))
+      .returning();
+    
+    if (!updatedFile) {
+      throw new Error("File not found");
+    }
+    
+    return updatedFile;
+  }
+
+  async deleteUploadedFile(id: number): Promise<void> {
+    await db.delete(uploadedFiles).where(eq(uploadedFiles.id, id));
+  }
+
+  // TTS Conversion operations
+  async getConversion(id: number): Promise<TTSConversion | undefined> {
+    const [conversion] = await db.select().from(ttsConversions).where(eq(ttsConversions.id, id));
+    return conversion;
+  }
+
+  async getConversionsByUser(userId: number): Promise<TTSConversion[]> {
+    return await db.select().from(ttsConversions).where(eq(ttsConversions.userId, userId));
+  }
+
+  async getConversionsByUserToday(userId: number): Promise<TTSConversion[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db
+      .select()
+      .from(ttsConversions)
+      .where(
+        and(
+          eq(ttsConversions.userId, userId),
+          gte(ttsConversions.createdAt, today)
+        )
+      );
+  }
+
+  async createConversion(conversion: InsertTTSConversion): Promise<TTSConversion> {
+    const [newConversion] = await db.insert(ttsConversions).values(conversion).returning();
+    return newConversion;
+  }
+
+  async deleteConversion(id: number): Promise<void> {
+    await db.delete(ttsConversions).where(eq(ttsConversions.id, id));
+  }
+
+  // Text Preset operations
+  async getPreset(id: number): Promise<TextPreset | undefined> {
+    const [preset] = await db.select().from(textPresets).where(eq(textPresets.id, id));
+    return preset;
+  }
+
+  async getPresetsByUser(userId: number): Promise<TextPreset[]> {
+    return await db.select().from(textPresets).where(eq(textPresets.userId, userId));
+  }
+
+  async createPreset(preset: InsertTextPreset): Promise<TextPreset> {
+    const [newPreset] = await db.insert(textPresets).values(preset).returning();
+    return newPreset;
+  }
+
+  async updatePreset(id: number, data: Partial<TextPreset>): Promise<TextPreset> {
+    const [updatedPreset] = await db
+      .update(textPresets)
+      .set(data)
+      .where(eq(textPresets.id, id))
+      .returning();
+    
+    if (!updatedPreset) {
+      throw new Error("Preset not found");
+    }
+    
+    return updatedPreset;
+  }
+
+  async deletePreset(id: number): Promise<void> {
+    await db.delete(textPresets).where(eq(textPresets.id, id));
+  }
+}
+
+// Use database storage instead of memory storage
+export const storage = new DatabaseStorage();
