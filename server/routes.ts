@@ -13,8 +13,12 @@ import {
   insertConversionSchema, 
   insertPresetSchema, 
   voiceSettingsSchema, 
-  ocrSettingsSchema
+  ocrSettingsSchema,
+  uploadedFiles,
+  ttsConversions
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, lt } from "drizzle-orm";
 import { createWorker } from "tesseract.js";
 import { readPdfText } from "pdf-text-reader";
 import docxReader from "docx-reader";
@@ -150,31 +154,56 @@ async function cleanupGuestFiles() {
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 1);
   
-  // Get all files uploaded by guests
-  const allFiles = await storage.uploadedFiles.values();
-  for (const file of allFiles) {
-    if (!file.userId && file.uploadDate < oneDayAgo) {
+  try {
+    // Get all files uploaded by guests with no user ID
+    // and uploaded more than 24 hours ago
+    const guestFiles = await db
+      .select()
+      .from(uploadedFiles)
+      .where(
+        and(
+          eq(uploadedFiles.userId, null),
+          lt(uploadedFiles.uploadDate, oneDayAgo)
+        )
+      );
+    
+    // Process each file for deletion
+    for (const file of guestFiles) {
       try {
-        // Delete the file from storage
+        // Delete the physical file
         await fs.promises.unlink(file.filePath);
         
-        // Delete the record from database
-        await storage.deleteUploadedFile(file.id);
-        
-        // Delete associated conversions
+        // Get associated conversions to delete their audio files first
         const conversions = await storage.getConversionsByUser(0); // guest id
         for (const conversion of conversions) {
-          if (conversion.sourceFileId === file.id) {
-            if (conversion.audioFilePath) {
+          if (conversion.sourceFileId === file.id && conversion.audioFilePath) {
+            try {
               await fs.promises.unlink(path.join(process.cwd(), conversion.audioFilePath));
+            } catch (audioErr) {
+              console.error("Failed to delete audio file:", audioErr);
             }
-            await storage.deleteConversion(conversion.id);
           }
         }
+        
+        // Delete conversions linked to this file
+        await db
+          .delete(ttsConversions)
+          .where(
+            and(
+              eq(ttsConversions.userId, null),
+              eq(ttsConversions.sourceFileId, file.id)
+            )
+          );
+        
+        // Finally delete the file record
+        await storage.deleteUploadedFile(file.id);
+        
       } catch (error) {
-        console.error("Error cleaning up guest files:", error);
+        console.error(`Error cleaning up guest file ${file.id}:`, error);
       }
     }
+  } catch (dbError) {
+    console.error("Database error during cleanup:", dbError);
   }
 }
 
