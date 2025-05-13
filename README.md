@@ -71,8 +71,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/EsaKris/)
-- [Live Demo](https://speechifydocs.repl.co)
+- [GitHub Repository](https://github.com/EsaKris/TextSpeechConverter)
+- [Live Demo](https://text2speech-r914.onrender.com)
 
 ---
 Built with ❤️ by Esa Kris
